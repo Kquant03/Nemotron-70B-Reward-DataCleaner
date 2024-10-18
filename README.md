@@ -10,6 +10,7 @@ Before running the script, make sure you have the following dependencies install
 - OpenAI Python library
 - Tiktoken library
 - tqdm library
+- A Nvidia API key from [build.nvidia](https://build.nvidia.com/nvidia/llama-3_1-nemotron-70b-reward)
 
 You can install the required libraries using pip:
 

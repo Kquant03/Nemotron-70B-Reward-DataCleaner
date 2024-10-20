@@ -1,4 +1,4 @@
-# Nvidia Nemotron 70B Reward Data Cleaner (LlamaCPP Version)
+# Nvidia Nemotron 70B Reward Data Cleaner (LlamaCPP Branch)
 
 This script is designed to clean and filter a JSONL dataset based on token count and a reward model score. It processes each line of the dataset, removes lines that exceed a specified token count or fall below a certain reward score threshold, and writes the cleaned data to a new JSONL file. It also provides information about the total tokens and the line with the most tokens in the cleaned file. This version is adapted to work with a local endpoint instead of the Nvidia API.
 

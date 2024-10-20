@@ -63,7 +63,7 @@ You may need to adjust the response parsing in the script if your local endpoint
 To run the script, execute the following command:
 
 ```
-python superclean.py
+python llamacpp_superclean.py
 ```
 
 The script will process each line of the input dataset, apply the token count and reward model score filters, and write the cleaned data to the specified output file. It will also write the deleted lines to the specified deleted file.

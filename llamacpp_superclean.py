@@ -1,12 +1,10 @@
 import json
-from openai import OpenAI
+import requests
 import tiktoken
 from tqdm import tqdm
 
-client = OpenAI(
-    base_url="https://integrate.api.nvidia.com/v1",
-    api_key="nvapi-DefinitelyNotMyAPIKey"
-)
+# Update this to your local endpoint URL
+LOCAL_ENDPOINT = "http://localhost:8000/v1/chat/completions"
 
 def count_tokens(text):
     encoding = tiktoken.get_encoding("cl100k_base")
@@ -46,27 +44,38 @@ def process_dataset(input_file, output_file, deleted_file):
                 messages[-1]['content'] += f"\n\nMy thoughts: {system_message['value']}"
 
             if human_messages and gpt_messages:
-                completion = client.chat.completions.create(
-                    model="nvidia/llama-3.1-nemotron-70b-reward",
-                    messages=messages,
-                )
-                reward_score_str = completion.choices[0].message.content
-                reward_score = float(reward_score_str.split(':')[-1])
+                try:
+                    response = requests.post(
+                        LOCAL_ENDPOINT,
+                        json={
+                            "model": "nvidia/llama-3.1-nemotron-70b-reward",
+                            "messages": messages
+                        }
+                    )
+                    response.raise_for_status()
+                    completion = response.json()
+                    reward_score_str = completion['choices'][0]['message']['content']
+                    reward_score = float(reward_score_str.split(':')[-1])
 
-                if reward_score >= -18.5:
-                    cleaned_data = {
-                        'conversations': [
-                            {'from': 'system', 'value': system_message['value']} if system_message else None
-                        ]
-                    }
-                    for human_message, gpt_message in zip(human_messages, gpt_messages):
-                        cleaned_data['conversations'].append({'from': 'human', 'value': human_message['value']})
-                        cleaned_data['conversations'].append({'from': 'gpt', 'value': gpt_message['value']})
-                    cleaned_data['conversations'] = [conv for conv in cleaned_data['conversations'] if conv]
-                    outfile.write(json.dumps(cleaned_data) + '\n')
-                    lines_kept += 1
-                else:
-                    data['score'] = reward_score
+                    if reward_score >= -18.5:
+                        cleaned_data = {
+                            'conversations': [
+                                {'from': 'system', 'value': system_message['value']} if system_message else None
+                            ]
+                        }
+                        for human_message, gpt_message in zip(human_messages, gpt_messages):
+                            cleaned_data['conversations'].append({'from': 'human', 'value': human_message['value']})
+                            cleaned_data['conversations'].append({'from': 'gpt', 'value': gpt_message['value']})
+                        cleaned_data['conversations'] = [conv for conv in cleaned_data['conversations'] if conv]
+                        outfile.write(json.dumps(cleaned_data) + '\n')
+                        lines_kept += 1
+                    else:
+                        data['score'] = reward_score
+                        deletedfile.write(json.dumps(data) + '\n')
+                        lines_removed += 1
+                except requests.exceptions.RequestException as e:
+                    print(f"Error calling local endpoint: {e}")
+                    data['score'] = 'Error in API call'
                     deletedfile.write(json.dumps(data) + '\n')
                     lines_removed += 1
             else:
@@ -97,7 +106,7 @@ def process_dataset(input_file, output_file, deleted_file):
     print(f"Number of tokens in the line with the most tokens: {max_tokens}")
 
 if __name__ == '__main__':
-    input_file = '/home/kquant/Documents/Datasets/SuperCleaned/Apocrypha.jsonl'
-    output_file = '/home/kquant/Documents/Datasets/SuperCleaned/FINISH/Apocrypha.jsonl'
-    deleted_file = '/home/kquant/Documents/Datasets/SuperCleaned/FINISH/Apocrypha_deleted.jsonl'
+    input_file = '/home/kquant/Documents/Datasets/SuperCleaned/SandevistanShard2.jsonl'
+    output_file = '/home/kquant/Documents/Datasets/SuperCleaned/FINISH/SandevistanShard2.jsonl'
+    deleted_file = '/home/kquant/Documents/Datasets/SuperCleaned/FINISH/SandevistanShard2_deleted.jsonl'
     process_dataset(input_file, output_file, deleted_file)
